@@ -3,42 +3,47 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sklearn
+from sklearn import linear_model
+import tools
+import os
 
+DOWNLOAD_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
+HOUSING_PATH = os.path.join("datasets", "housing")
+HOUSING_URL = DOWNLOAD_ROOT + "datasets/housing/housing.tgz"
 
-def prepare_country_stats(oecd_bli, gdp_per_capita):
-    oecd_bli = oecd_bli[oecd_bli["INEQUALITY"]=="TOT"]
-    oecd_bli = oecd_bli.pivot(index="Country", columns="Indicator", values="Value")
-    gdp_per_capita.rename(columns={"2015": "GDP per capita"}, inplace=True)
-    gdp_per_capita.set_index("Country", inplace=True)
-    full_country_stats = pd.merge(left=oecd_bli, right=gdp_per_capita,
-                                  left_index=True, right_index=True)
-    full_country_stats.sort_values(by="GDP per capita", inplace=True)
-    remove_indices = [0, 1, 6, 8, 33, 34, 35]
-    keep_indices = list(set(range(36)) - set(remove_indices))
-    return full_country_stats[["GDP per capita", 'Life satisfaction']].iloc[keep_indices]
-    
-datapath = "data/"
-# Load the data
-oecd_bli = pd.read_csv(datapath + "oecd_bli_2015.csv", thousands=',')
-gdp_per_capita = pd.read_csv(datapath + "gdp_per_capita.csv",thousands=',',delimiter='\t',
-                             encoding='latin1', na_values="n/a")
+tools.fetch_data(HOUSING_URL, HOUSING_PATH)
+
+DATA_PATH = os.path.join(HOUSING_PATH,'housing.csv')
+housing_data = pd.read_csv(DATA_PATH)
+# print(housing_data.head())
+
+tools.split_train_test(housing_data, 0.2, HOUSING_PATH)
+
+TRAIN_PATH = os.path.join(HOUSING_PATH,'train_data.csv')
+
+train_data = pd.read_csv(TRAIN_PATH)
+
+corr_matrix = train_data.corr()
+print(corr_matrix)
+
 
 # Prepare the data
-country_stats = prepare_country_stats(oecd_bli, gdp_per_capita)
-X = np.c_[country_stats["GDP per capita"]]
-y = np.c_[country_stats["Life satisfaction"]]
+X_median_income = np.c_[train_data["median_income"]]
+Y_total_rooms = np.c_[train_data["total_rooms"]]
+
+
+print(train_data.head())
 
 # Visualize the data
-country_stats.plot(kind='scatter', x="GDP per capita", y='Life satisfaction')
+train_data.plot(kind='scatter', x="median_income", y="total_rooms", alpha = 0.1) # alpha: transparency
 plt.show()
 
-# Select a linear model
-model = sklearn.linear_model.LinearRegression()
+# # Select a linear model
+model = linear_model.LinearRegression()
 
-# Train the model
-model.fit(X, y)
+# # Train the model
+model.fit(X_median_income, Y_total_rooms)
 
-# Make a prediction for Cyprus
-X_new = [[22587]]  # Cyprus' GDP per capita
-print(model.predict(X_new)) # outputs [[ 5.96242338]]
+# # Make a prediction for Cyprus
+X_new = [[4]]  
+print(model.predict(X_new))
